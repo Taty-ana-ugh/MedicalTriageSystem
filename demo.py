@@ -9,7 +9,7 @@ Run with:
 """
 
 import time
-from triage import TriageQueue, TriageInput, VitalSigns
+from core.triage import TriageQueue, TriageInput, VitalSigns
 
 
 def websocket_style_broadcaster(event: str, node):

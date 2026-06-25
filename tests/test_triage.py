@@ -10,8 +10,8 @@ Run with:
 import time
 import pytest
 
-from heap import MaxHeapPriorityQueue
-from triage import (
+from core.heap import MaxHeapPriorityQueue
+from core.triage import (
     TriageQueue, TriageAlgorithm, AgingAlgorithm,
     TriageInput, VitalSigns, UrgencyLevel,
 )

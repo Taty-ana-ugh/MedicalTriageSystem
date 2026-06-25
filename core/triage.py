@@ -25,7 +25,7 @@ from enum import IntEnum
 from typing import Callable, Optional
 import time
 
-from heap import MaxHeapPriorityQueue, HeapNode
+from core.heap import MaxHeapPriorityQueue, HeapNode
 
 
 # ====================================================================== #

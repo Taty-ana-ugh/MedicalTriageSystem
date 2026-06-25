@@ -5,8 +5,8 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
 # Pull in your manager and your team's code structures
-from websocket_manager import TriageWebSocketManager
-from triage import TriageQueue, TriageInput, VitalSigns
+from api.websocket_manager import TriageWebSocketManager
+from core.triage import TriageQueue, TriageInput, VitalSigns
 
 app = FastAPI(title="Real-Time Medical Triage Server")
 
