@@ -26,11 +26,22 @@ from api.state import triage_queue, ws_manager
 # ------------------------------------------------------------------ #
 def sync_event_handler(event_name: str, node):
     """
-    This callback triggers every single time triage_queue mutates 
-    (inserts, pops, or removes). It spawns an async task to broadcast 
+    This callback triggers every single time triage_queue mutates
+    (inserts, pops, or removes). It spawns an async task to broadcast
     the change to all client terminals.
+
+    triage_queue's methods are plain sync methods (Tat designed it that
+    way so tests, scripts, and future sync REST code can call them
+    without needing async/await). That means this handler can fire from
+    contexts with NO running event loop — e.g. a direct unit test call,
+    or a synchronous endpoint. In that case there's nothing listening on
+    a socket to broadcast to anyway, so we skip instead of crashing.
     """
-    asyncio.create_task(ws_manager.broadcast_queue_state(triage_queue))
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        return
+    loop.create_task(ws_manager.broadcast_queue_state(triage_queue))
 
 # Hooking into the event pipeline your teammate built for you
 triage_queue.on_event(sync_event_handler)
