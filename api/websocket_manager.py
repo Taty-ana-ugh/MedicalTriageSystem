@@ -21,21 +21,28 @@ class TriageWebSocketManager:
 
     async def broadcast_queue_state(self, triage_queue):
         """
-        Takes a real-time snapshot of your teammate's TriageQueue,
-        serializes it, and sends it out to all connected terminals concurrently.
+        Takes a real-time snapshot of the TriageQueue, serializes it, and
+        sends it to all connected terminals concurrently. Any connection
+        that fails to receive (e.g. client closed without a clean
+        disconnect) is dropped from the active list.
         """
         if not self.active_connections:
             return
 
-        # Matches Elvis's REST payload format perfectly
         payload = {
             "event": "QUEUE_UPDATE",
             "snapshot": triage_queue.snapshot()
         }
         message = json.dumps(payload)
 
-        # Fire transmission tasks to all connected screens in parallel
-        await asyncio.gather(
+        results = await asyncio.gather(
             *[connection.send_text(message) for connection in self.active_connections],
             return_exceptions=True
         )
+
+        dead_connections = [
+            conn for conn, result in zip(self.active_connections, results)
+            if isinstance(result, Exception)
+        ]
+        for conn in dead_connections:
+            self.disconnect(conn)

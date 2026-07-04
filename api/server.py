@@ -6,7 +6,6 @@ from fastapi.middleware.cors import CORSMiddleware
 
 # Pull in your manager and your team's code structures
 from api.websocket_manager import TriageWebSocketManager
-from core.triage import TriageQueue, TriageInput, VitalSigns
 
 app = FastAPI(title="Real-Time Medical Triage Server")
 
@@ -19,9 +18,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Core initialization
-triage_queue = TriageQueue()
-ws_manager = TriageWebSocketManager()
+# Core initialization — shared instances, importable by Elvis's REST routes too
+from api.state import triage_queue, ws_manager
 
 # ------------------------------------------------------------------ #
 # Event Bridge: Binding your Socket Core to the Triage Engine
