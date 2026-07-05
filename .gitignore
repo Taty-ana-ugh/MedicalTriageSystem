@@ -1,1 +1,3 @@
 triage.db
+__pycache__/
+*.pyc
