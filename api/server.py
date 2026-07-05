@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 from uuid import uuid4
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from db.database import init_db
 
 from api.state import triage_queue, departments, ws_manager
 from core.triage import TriageAlgorithm, TriageInput, VitalSigns
@@ -68,6 +69,10 @@ triage_queue.on_event(sync_event_handler)
 # operate once he wires up routing) would mutate silently with nothing
 # broadcast over the socket.
 departments.on_event(sync_event_handler)
+# create tables at import time (not only in lifespan) -- TestClient(app)
+# without a `with` block doesn't reliably fire startup events, and this
+# bit us in testing. create_all() is idempotent so calling it here too is safe.
+init_db()
 
 
 # ------------------------------------------------------------------ #
@@ -94,6 +99,7 @@ async def lifespan(app: FastAPI):
     background task on shutdown.
     """
     global _main_loop
+    init_db()
     _main_loop = asyncio.get_running_loop()
     task = asyncio.create_task(aging_timer_loop())
     yield
@@ -114,6 +120,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from api.patients import router as patients_router
+app.include_router(patients_router)
 
 # ------------------------------------------------------------------ #
 # WebSocket Router Endpoint
