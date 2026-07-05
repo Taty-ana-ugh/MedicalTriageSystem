@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { submitPatient } from '../lib/api';
 
 const RED_FLAG_SYMPTOMS = [
   { key: "chest_pain", label: "Chest Pain" },
@@ -46,6 +47,8 @@ const UpdatedTriageForm = ({ onSubmitPatient }) => {
   });
 
   const [selectedSymptoms, setSelectedSymptoms] = useState([]);
+  const [statusMessage, setStatusMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -58,13 +61,12 @@ const UpdatedTriageForm = ({ onSubmitPatient }) => {
     );
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Reconstruct into the exact payload Elvis's POST /patient route expects
     const payload = {
       department: formData.department,
-      patient_id: `PT-${Math.floor(1000 + Math.random() * 9000)}`, // temporary ID generator
+      patient_id: `PT-${Math.floor(1000 + Math.random() * 9000)}`,
       intake: {
         age: formData.age ? parseInt(formData.age, 10) : null,
         symptom_tags: selectedSymptoms,
@@ -84,10 +86,19 @@ const UpdatedTriageForm = ({ onSubmitPatient }) => {
       }
     };
 
-    if (onSubmitPatient) {
-      onSubmitPatient(payload);
-    } else {
-      console.log("Structured Triage Payload Prepared:", payload);
+    setIsSubmitting(true);
+    setStatusMessage('');
+
+    try {
+      const response = await submitPatient(payload);
+      if (onSubmitPatient) {
+        onSubmitPatient(response);
+      }
+      setStatusMessage(`Patient submitted successfully with ID ${response.patient_id}.`);
+    } catch (error) {
+      setStatusMessage(error.message || 'Unable to submit patient.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -227,12 +238,19 @@ const UpdatedTriageForm = ({ onSubmitPatient }) => {
         
        
 
+        {statusMessage ? (
+          <div className={`rounded-lg border px-4 py-3 text-sm ${statusMessage.includes('successfully') ? 'border-green-200 bg-green-50 text-green-700' : 'border-red-200 bg-red-50 text-red-700'}`}>
+            {statusMessage}
+          </div>
+        ) : null}
+
         {/* Submit Action */}
         <button 
           type="submit" 
-          className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 shadow-md transition duration-200 text-base"
+          disabled={isSubmitting}
+          className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 shadow-md transition duration-200 text-base disabled:opacity-70"
         >
-          Submit Patient Form
+          {isSubmitting ? 'Submitting...' : 'Submit Patient Form'}
         </button>
       </form>
     </div>

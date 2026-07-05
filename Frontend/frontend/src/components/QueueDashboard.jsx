@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { admitNextPatient, fetchDepartments, routePatient } from '../lib/api';
 
 const TIER_BADGES = {
   EMERGENCY: "bg-red-100 text-red-800 border-red-200",
@@ -8,9 +9,28 @@ const TIER_BADGES = {
 
 const QueueDashboard = ({ departmentsData, onPopPatient, onRoutePatient }) => {
   const [activeDept, setActiveDept] = useState('ER');
-  const departments = Object.keys(departmentsData || { ER: [], Pediatrics: [], Radiology: [], General: [] });
+  const [liveData, setLiveData] = useState(departmentsData || { ER: [], Pediatrics: [], Radiology: [], General: [] });
+  const [loading, setLoading] = useState(false);
 
-  const currentQueue = departmentsData?.[activeDept] || [];
+  const departments = Object.keys(liveData || { ER: [], Pediatrics: [], Radiology: [], General: [] });
+  const currentQueue = liveData?.[activeDept] || [];
+
+  const refreshData = async () => {
+    try {
+      const data = await fetchDepartments();
+      setLiveData(data);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  useEffect(() => {
+    if (departmentsData) {
+      setLiveData(departmentsData);
+      return;
+    }
+    refreshData();
+  }, [departmentsData]);
 
   const formatWaitTime = (seconds) => {
     if (seconds < 60) return `${Math.round(seconds)}s`;
@@ -27,11 +47,22 @@ const QueueDashboard = ({ departmentsData, onPopPatient, onRoutePatient }) => {
         </div>
         
         <button
-          onClick={() => onPopPatient(activeDept)}
-          disabled={currentQueue.length === 0}
+          onClick={async () => {
+            setLoading(true);
+            try {
+              await admitNextPatient(activeDept);
+              if (onPopPatient) {
+                onPopPatient(activeDept);
+              }
+              await refreshData();
+            } finally {
+              setLoading(false);
+            }
+          }}
+          disabled={currentQueue.length === 0 || loading}
           className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-500  text-slate-800 text-white font-semibold py-2 px-4 rounded-lg shadow transition text-sm flex items-center gap-2"
         >
-          <span>Serve Next Critical Patient</span>
+          <span>{loading ? 'Serving...' : 'Serve Next Critical Patient'}</span>
           <span className="bg-blue-800 px-1.5 py-0.5 rounded text-xs">{currentQueue.length}</span>
         </button>
       </div>
@@ -98,7 +129,17 @@ const QueueDashboard = ({ departmentsData, onPopPatient, onRoutePatient }) => {
                     <td className="p-4 text-right">
                       <select
                         value={activeDept}
-                        onChange={(e) => onRoutePatient(patient.patient_id, activeDept, e.target.value)}
+                        onChange={async (e) => {
+                          try {
+                            await routePatient(patient.patient_id, e.target.value);
+                            if (onRoutePatient) {
+                              onRoutePatient(patient.patient_id, activeDept, e.target.value);
+                            }
+                            await refreshData();
+                          } catch (error) {
+                            console.error(error);
+                          }
+                        }}
                         className="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs font-medium text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
                       >
                         {departments.map(d => (

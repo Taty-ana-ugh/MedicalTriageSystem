@@ -1,17 +1,36 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { fetchDepartments, routePatient } from '../lib/api';
 
 const DEFAULT_DEPARTMENTS = ['ER', 'Pediatrics', 'Radiology', 'General'];
 
 const DepartmentRegistry = ({ departmentsData = {}, onMovePatient, onAddDepartment }) => {
   const [activeDepartment, setActiveDepartment] = useState(DEFAULT_DEPARTMENTS[0]);
   const [newDepartment, setNewDepartment] = useState('');
+  const [liveDepartmentsData, setLiveDepartmentsData] = useState(departmentsData || {});
 
   const departments = useMemo(() => {
-    const names = new Set([...DEFAULT_DEPARTMENTS, ...Object.keys(departmentsData || {})]);
+    const names = new Set([...DEFAULT_DEPARTMENTS, ...Object.keys(liveDepartmentsData || {})]);
     return Array.from(names);
-  }, [departmentsData]);
+  }, [liveDepartmentsData]);
 
-  const currentQueue = departmentsData?.[activeDepartment] || [];
+  const currentQueue = liveDepartmentsData?.[activeDepartment] || [];
+
+  useEffect(() => {
+    const loadDepartments = async () => {
+      try {
+        const data = await fetchDepartments();
+        setLiveDepartmentsData(data);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    if (departmentsData && Object.keys(departmentsData).length > 0) {
+      setLiveDepartmentsData(departmentsData);
+    } else {
+      loadDepartments();
+    }
+  }, [departmentsData]);
 
   const handleAddDepartment = () => {
     const name = newDepartment.trim();
@@ -96,9 +115,16 @@ const DepartmentRegistry = ({ departmentsData = {}, onMovePatient, onAddDepartme
                     </span>
                     <select
                       value={activeDepartment}
-                      onChange={(event) => {
-                        if (onMovePatient) {
-                          onMovePatient(patient.patient_id, activeDepartment, event.target.value);
+                      onChange={async (event) => {
+                        try {
+                          await routePatient(patient.patient_id, event.target.value);
+                          if (onMovePatient) {
+                            onMovePatient(patient.patient_id, activeDepartment, event.target.value);
+                          }
+                          const data = await fetchDepartments();
+                          setLiveDepartmentsData(data);
+                        } catch (error) {
+                          console.error(error);
                         }
                       }}
                       className="border border-gray-300 rounded px-2 py-1 text-sm"
@@ -122,7 +148,7 @@ const DepartmentRegistry = ({ departmentsData = {}, onMovePatient, onAddDepartme
             {departments.map((department) => (
               <li key={department} className="flex justify-between items-center">
                 <span>{department}</span>
-                <span className="font-semibold text-slate-800">{departmentsData?.[department]?.length || 0} patients</span>
+                <span className="font-semibold text-slate-800">{liveDepartmentsData?.[department]?.length || 0} patients</span>
               </li>
             ))}
           </ul>

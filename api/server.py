@@ -1,11 +1,14 @@
 # server.py
 import asyncio
 import json
+import time
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from uuid import uuid4
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.state import triage_queue, departments, ws_manager
+from core.triage import TriageAlgorithm, TriageInput, VitalSigns
 
 
 # ------------------------------------------------------------------ #
