@@ -1,4 +1,5 @@
-import React from 'react'
+import React from 'react';
+import { Link } from 'react-router-dom';
 
 const Navbar = () => {
   return (
@@ -14,9 +15,15 @@ const Navbar = () => {
         
         {/* Right side: Navigation Links */}
         <ul className="flex space-x-6">
-          <li className="hover:text-blue-200 cursor-pointer transition-colors">Home</li>
-          <li className="hover:text-blue-200 cursor-pointer transition-colors">Dashboard</li>
-          <li className="hover:text-blue-200 cursor-pointer transition-colors">Login</li>
+          <li className="hover:text-blue-200 cursor-pointer transition-colors">
+            <Link to="/">Home</Link>
+          </li>
+          <li className="hover:text-blue-200 cursor-pointer transition-colors">
+            <Link to="/dashboard">Dashboard</Link>
+          </li>
+          <li className="hover:text-blue-200 cursor-pointer transition-colors">
+            <Link to="/departments">Department Registry</Link>
+          </li>
         </ul>
 
       </div>
